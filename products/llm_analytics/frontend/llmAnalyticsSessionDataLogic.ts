@@ -32,6 +32,7 @@ export interface SessionDataLogicProps {
     sessionId: string
     query: DataTableNode
     cachedResults?: AnyResponseType | null
+    tabId?: string
 }
 
 function getDataNodeLogicProps({ sessionId, query, cachedResults }: SessionDataLogicProps): DataNodeLogicProps {
@@ -55,7 +56,7 @@ export const llmAnalyticsSessionDataLogic = kea<llmAnalyticsSessionDataLogicType
     key((props) => props.sessionId),
     connect((props: SessionDataLogicProps) => ({
         values: [
-            llmAnalyticsSessionLogic,
+            llmAnalyticsSessionLogic({ tabId: props.tabId }),
             ['sessionId'],
             dataNodeLogic(getDataNodeLogicProps(props)),
             ['response', 'responseLoading', 'responseError'],

@@ -29,6 +29,7 @@ export interface TraceDataLogicProps {
     query: DataTableNode
     cachedResults?: AnyResponseType | null
     searchQuery: string
+    tabId?: string
 }
 
 function getDataNodeLogicProps({ traceId, query, cachedResults }: TraceDataLogicProps): DataNodeLogicProps {
@@ -89,7 +90,7 @@ export const llmAnalyticsTraceDataLogic = kea<llmAnalyticsTraceDataLogicType>([
     key((props) => props.traceId),
     connect((props: TraceDataLogicProps) => ({
         values: [
-            llmAnalyticsTraceLogic,
+            llmAnalyticsTraceLogic({ tabId: props.tabId }),
             ['eventId', 'searchQuery', 'initialTab'],
             dataNodeLogic(getDataNodeLogicProps(props)),
             ['response', 'responseLoading', 'responseError'],
@@ -299,7 +300,7 @@ export const llmAnalyticsTraceDataLogic = kea<llmAnalyticsTraceDataLogicType>([
     subscriptions(({ props }) => ({
         trace: (trace: LLMTrace | undefined) => {
             if (trace?.createdAt && props.traceId) {
-                llmAnalyticsTraceLogic.actions.loadNeighbors(props.traceId, trace.createdAt)
+                llmAnalyticsTraceLogic({ tabId: props.tabId }).actions.loadNeighbors(props.traceId, trace.createdAt)
             }
 
             if (trace?.distinctId) {

@@ -145,9 +145,9 @@ export const scene: SceneExport = {
     logic: llmAnalyticsTraceLogic,
 }
 
-export function LLMAnalyticsTraceScene(): JSX.Element {
+export function LLMAnalyticsTraceScene({ tabId }: { tabId?: string }): JSX.Element {
     const { traceId, query, searchQuery } = useValues(llmAnalyticsTraceLogic)
-    const logicProps = { traceId, query, cachedResults: null, searchQuery }
+    const logicProps = { traceId, query, cachedResults: null, searchQuery, tabId }
     const traceDataLogic = llmAnalyticsTraceDataLogic(logicProps)
 
     useAttachedLogic(traceDataLogic, llmAnalyticsTraceLogic)
