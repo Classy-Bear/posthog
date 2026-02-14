@@ -154,8 +154,10 @@ export function LLMAnalyticsTraceScene({ tabId }: { tabId?: string }): JSX.Eleme
     useAttachedLogic(traceDataLogic, traceLogic)
 
     return (
-        <BindLogic logic={llmAnalyticsTraceDataLogic} props={logicProps}>
-            <TraceSceneWrapper />
+        <BindLogic logic={llmAnalyticsTraceLogic} props={{ tabId }}>
+            <BindLogic logic={llmAnalyticsTraceDataLogic} props={logicProps}>
+                <TraceSceneWrapper />
+            </BindLogic>
         </BindLogic>
     )
 }
