@@ -58,11 +58,6 @@ def _resolve_flag_dependency_key(flag_prop: FlagProperty, flag_id_to_key: dict[s
     return flag_id_to_key.get(flag_reference, flag_reference)
 
 
-def _build_flag_id_to_key_mapping(flags) -> dict[str, str]:
-    """Build mapping from flag ID to flag key for dependency transformation."""
-    return {str(flag.id): flag.key for flag in flags}
-
-
 class _DependencyChainBuilder:
     """
     Internal class for building flag dependency chains using topological sorting.
@@ -645,23 +640,70 @@ def _get_flags_for_local_evaluation(team: Team, include_cohorts: bool = True) ->
 
 
 def _get_flags_response_for_local_evaluation(team: Team, include_cohorts: bool) -> dict[str, Any]:
+    """Build the local-evaluation response using streamed flag processing to reduce peak memory."""
     from posthog.api.feature_flag import MinimalFeatureFlagSerializer
 
-    flags, cohorts = _get_flags_for_local_evaluation(team, include_cohorts)
+    base_queryset = _get_base_flags_queryset(team)
+
+    # Pass 1: collect cohort IDs from flag filters (lightweight, only loads filters column)
+    all_direct_cohort_ids: set[int] = set()
+    for flag in base_queryset.only("filters").iterator():
+        all_direct_cohort_ids.update(_extract_cohort_ids_from_filters(flag.filters or {}))
+
+    # Bulk load cohorts with nested dependencies
+    seen_cohorts_cache: dict[int, CohortOrEmpty] = {}
+    if all_direct_cohort_ids:
+        try:
+            seen_cohorts_cache = _load_cohorts_with_dependencies(
+                all_direct_cohort_ids, team.project_id, DATABASE_FOR_LOCAL_EVALUATION
+            )
+        except Exception:
+            logger.error("Error loading cohorts for flags", exc_info=True)
+
+    # Pass 2: stream flags, serialize each immediately
+    flags_data: list[dict[str, Any]] = []
+    cohorts: dict[str, Any] = {}
+    flag_id_to_key: dict[str, str] = {}
+
+    for feature_flag in base_queryset.iterator():
+        try:
+            filters = feature_flag.get_filters()
+
+            cohort_ids = feature_flag.get_cohort_ids(
+                using_database=DATABASE_FOR_LOCAL_EVALUATION,
+                seen_cohorts_cache=seen_cohorts_cache,
+            )
+
+            if not include_cohorts:
+                feature_flag.filters = _get_transformed_filters_for_without_cohorts(
+                    feature_flag, filters, cohort_ids, seen_cohorts_cache
+                )
+            else:
+                feature_flag.filters = filters
+
+            flags_data.append(MinimalFeatureFlagSerializer(feature_flag, context={}).data)
+
+            if include_cohorts:
+                for cohort_id in cohort_ids:
+                    _add_cohort_to_dict(cohort_id, team, seen_cohorts_cache, cohorts)
+
+            flag_id_to_key[str(feature_flag.id)] = feature_flag.key
+
+        except Exception:
+            logger.error("Error processing feature flag", extra={"flag_id": feature_flag.pk}, exc_info=True)
+            continue
 
     response_data = {
-        "flags": [MinimalFeatureFlagSerializer(feature_flag, context={}).data for feature_flag in flags],
+        "flags": flags_data,
         "group_type_mapping": {
             str(row.group_type_index): row.group_type
             for row in GroupTypeMapping.objects.db_manager(READ_ONLY_DATABASE_FOR_PERSONS).filter(
                 project_id=team.project_id
             )
         },
-        "cohorts": cohorts,
+        "cohorts": cohorts if include_cohorts else {},
     }
 
-    # Transform flag dependencies for simplified client-side evaluation
-    flag_id_to_key = _build_flag_id_to_key_mapping(flags)
     return _apply_flag_dependency_transformation(response_data, flag_id_to_key)
 
 
