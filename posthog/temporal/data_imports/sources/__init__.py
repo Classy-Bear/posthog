@@ -27,6 +27,7 @@ from .redshift.source import RedshiftSource
 from .revenuecat.source import RevenueCatSource
 from .salesforce.source import SalesforceSource
 from .shopify.source import ShopifySource
+from .slack.source import SlackSource
 from .snapchat_ads.source import SnapchatAdsSource
 from .snowflake.source import SnowflakeSource
 from .stripe.source import StripeSource
@@ -68,6 +69,7 @@ __all__ = [
     "RevenueCatSource",
     "SalesforceSource",
     "ShopifySource",
+    "SlackSource",
     "SnapchatAdsSource",
     "SnowflakeSource",
     "StripeSource",

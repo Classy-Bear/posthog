@@ -4846,6 +4846,7 @@ export const externalDataSources = [
     'Shopify',
     'Attio',
     'SnapchatAds',
+    'Slack',
 ] as const
 
 export type ExternalDataSourceType = (typeof externalDataSources)[number]

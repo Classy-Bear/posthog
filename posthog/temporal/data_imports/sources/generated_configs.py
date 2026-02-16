@@ -249,6 +249,11 @@ class ShopifySourceConfig(config.Config):
 
 
 @config.config
+class SlackSourceConfig(config.Config):
+    slack_integration_id: int = config.value(converter=config.str_to_int)
+
+
+@config.config
 class SnapchatAdsSourceConfig(config.Config):
     ad_account_id: str
     snapchat_integration_id: int = config.value(converter=config.str_to_int)
@@ -342,6 +347,7 @@ def get_config_for_source(source: ExternalDataSourceType):
         ExternalDataSourceType.REVENUECAT: RevenueCatSourceConfig,
         ExternalDataSourceType.SALESFORCE: SalesforceSourceConfig,
         ExternalDataSourceType.SHOPIFY: ShopifySourceConfig,
+        ExternalDataSourceType.SLACK: SlackSourceConfig,
         ExternalDataSourceType.SNAPCHATADS: SnapchatAdsSourceConfig,
         ExternalDataSourceType.SNOWFLAKE: SnowflakeSourceConfig,
         ExternalDataSourceType.STRIPE: StripeSourceConfig,
