@@ -79,6 +79,7 @@ TrendsLineMulti.parameters = {
     testOptions: {
         ...meta.parameters?.testOptions,
         waitForSelector: '[data-attr=trend-line-graph] > canvas',
+        enableCanvasRendering: true,
     },
 }
 export const TrendsLineMultiEdit: Story = createInsightStory(
@@ -101,6 +102,7 @@ TrendsLineBreakdown.parameters = {
     testOptions: {
         ...meta.parameters?.testOptions,
         waitForSelector: '[data-attr=trend-line-graph] > canvas',
+        enableCanvasRendering: true,
     },
 }
 export const TrendsLineBreakdownEdit: Story = createInsightStory(
@@ -137,6 +139,7 @@ TrendsBar.parameters = {
     testOptions: {
         ...meta.parameters?.testOptions,
         waitForSelector: '[data-attr=trend-line-graph] > canvas',
+        enableCanvasRendering: true,
     },
 }
 
@@ -170,6 +173,7 @@ TrendsBarBreakdown.parameters = {
     testOptions: {
         ...meta.parameters?.testOptions,
         waitForSelector: '[data-attr=trend-line-graph] > canvas',
+        enableCanvasRendering: true,
     },
 }
 export const TrendsBarBreakdownEdit: Story = createInsightStory(
