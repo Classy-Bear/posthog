@@ -47,6 +47,7 @@ TrendsLine.parameters = {
     testOptions: {
         ...meta.parameters?.testOptions,
         waitForSelector: '[data-attr=trend-line-graph] > canvas',
+        enableCanvasRendering: true,
     },
 }
 
