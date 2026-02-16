@@ -108,7 +108,6 @@ def _fetch_all_channels(access_token: str) -> list[dict[str, Any]]:
 def _fetch_messages_for_channel(
     access_token: str,
     channel_id: str,
-    oldest: str | None = None,
 ) -> Iterator[dict[str, Any]]:
     cursor: str | None = None
     url = "https://slack.com/api/conversations.history"
@@ -119,8 +118,6 @@ def _fetch_messages_for_channel(
             "channel": channel_id,
             "limit": 200,
         }
-        if oldest:
-            params["oldest"] = oldest
         if cursor:
             params["cursor"] = cursor
 
@@ -146,13 +143,57 @@ def _fetch_messages_for_channel(
             break
 
 
+def _fetch_thread_replies(
+    access_token: str,
+    channel_id: str,
+    thread_ts: str,
+) -> Iterator[dict[str, Any]]:
+    """Fetch replies for a single thread, excluding the parent message."""
+    cursor: str | None = None
+    url = "https://slack.com/api/conversations.replies"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    while True:
+        params: dict[str, Any] = {
+            "channel": channel_id,
+            "ts": thread_ts,
+            "limit": 200,
+        }
+        if cursor:
+            params["cursor"] = cursor
+
+        response = requests.get(url, headers=headers, params=params, timeout=30)
+        data = response.json()
+
+        if not data.get("ok"):
+            error = data.get("error", "unknown_error")
+            if error in ("channel_not_found", "not_in_channel", "missing_scope", "thread_not_found"):
+                return
+            raise Exception(f"Slack API error fetching thread replies for {channel_id}/{thread_ts}: {error}")
+
+        for msg in data.get("messages", []):
+            if msg.get("ts") == thread_ts and msg.get("thread_ts") == thread_ts:
+                continue
+            msg["channel_id"] = channel_id
+            yield msg
+
+        next_cursor = data.get("response_metadata", {}).get("next_cursor", "")
+        if next_cursor:
+            cursor = next_cursor
+        else:
+            break
+
+
 def _messages_generator(
     access_token: str,
-    oldest: str | None = None,
 ) -> Iterator[dict[str, Any]]:
     channels = _fetch_all_channels(access_token)
     for channel in channels:
-        yield from _fetch_messages_for_channel(access_token, channel["id"], oldest)
+        channel_id = channel["id"]
+        for msg in _fetch_messages_for_channel(access_token, channel_id):
+            yield msg
+            if msg.get("reply_count", 0) > 0:
+                yield from _fetch_thread_replies(access_token, channel_id, msg["ts"])
 
 
 def slack_source(
@@ -165,15 +206,9 @@ def slack_source(
     incremental_field: str | None = None,
 ) -> SourceResponse:
     if endpoint == "messages":
-        oldest = (
-            str(db_incremental_field_last_value)
-            if should_use_incremental_field and db_incremental_field_last_value
-            else None
-        )
-
         return SourceResponse(
             name="messages",
-            items=lambda: _messages_generator(access_token, oldest),
+            items=lambda: _messages_generator(access_token),
             primary_keys=["channel_id", "ts"],
             partition_count=1,
             partition_size=1,
