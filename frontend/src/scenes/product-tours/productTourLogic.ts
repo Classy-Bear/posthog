@@ -32,7 +32,7 @@ import { DEFAULT_APPEARANCE } from './constants'
 import { prepareStepsForRender } from './editor/generateStepHtml'
 import type { productTourLogicType } from './productTourLogicType'
 import { isAnnouncement, productToursLogic } from './productToursLogic'
-import { hasIncompleteTargeting } from './stepUtils'
+import { hasIncompleteTargeting, resolveStepTranslation } from './stepUtils'
 
 export const DEFAULT_TARGETING_FILTERS: FeatureFlagType['filters'] = {
     ...NEW_FLAG.filters,
@@ -445,7 +445,21 @@ export const productTourLogic = kea<productTourLogicType>([
             const index = values.selectedStepIndex
             if (index >= 0 && index < steps.length) {
                 const newSteps = [...steps]
-                newSteps[index] = { ...newSteps[index], ...updates }
+                const step = newSteps[index]
+
+                if (values.isEditingTranslation) {
+                    const lang = values.selectedLanguage!
+                    newSteps[index] = {
+                        ...step,
+                        translations: {
+                            ...step.translations,
+                            [lang]: { ...step.translations?.[lang], ...updates },
+                        },
+                    }
+                } else {
+                    newSteps[index] = { ...step, ...updates }
+                }
+
                 actions.setProductTourFormValue('content', {
                     ...values.productTourForm.content,
                     steps: newSteps,
@@ -583,6 +597,31 @@ export const productTourLogic = kea<productTourLogicType>([
             (s) => [s._selectedLanguage, s.productTourForm],
             (_selectedLanguage: string | null, productTourForm: ProductTourForm): string | null => {
                 return _selectedLanguage ?? productTourForm.content.languages?.[0] ?? null
+            },
+        ],
+        isEditingTranslation: [
+            (s) => [s.selectedLanguage, s.productTourForm],
+            (selectedLanguage: string | null, productTourForm: ProductTourForm): boolean => {
+                if (!selectedLanguage) {
+                    return false
+                }
+                const defaultLang = productTourForm.content.languages?.[0]
+                return !!defaultLang && selectedLanguage !== defaultLang
+            },
+        ],
+        selectedStep: [
+            (s) => [s.productTourForm, s.selectedStepIndex, s.selectedLanguage, s.isEditingTranslation],
+            (
+                form: ProductTourForm,
+                index: number,
+                lang: string | null,
+                isTranslation: boolean
+            ): ProductTourStep | null => {
+                const step = form.content?.steps?.[index]
+                if (!step) {
+                    return null
+                }
+                return isTranslation ? resolveStepTranslation(step, lang) : step
             },
         ],
         entityKeyword: [
