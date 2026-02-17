@@ -8,13 +8,20 @@ class Migration(migrations.Migration):
         ("signals", "0002_signalreport_clustering_fields"),
     ]
 
+    # Step 1: Remove fields from Django model state only (columns kept in DB for rollback safety).
+    # Step 2 (future migration): Actually drop the columns after a full deploy cycle.
     operations = [
-        migrations.RemoveField(
-            model_name="signalreport",
-            name="cluster_centroid",
-        ),
-        migrations.RemoveField(
-            model_name="signalreport",
-            name="cluster_centroid_updated_at",
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name="signalreport",
+                    name="cluster_centroid",
+                ),
+                migrations.RemoveField(
+                    model_name="signalreport",
+                    name="cluster_centroid_updated_at",
+                ),
+            ],
+            database_operations=[],
         ),
     ]
