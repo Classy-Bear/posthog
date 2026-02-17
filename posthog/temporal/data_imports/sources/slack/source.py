@@ -12,7 +12,7 @@ from posthog.temporal.data_imports.sources.common.mixins import OAuthMixin
 from posthog.temporal.data_imports.sources.common.registry import SourceRegistry
 from posthog.temporal.data_imports.sources.common.schema import SourceSchema
 from posthog.temporal.data_imports.sources.generated_configs import SlackSourceConfig
-from posthog.temporal.data_imports.sources.slack.settings import ENDPOINTS, INCREMENTAL_FIELDS
+from posthog.temporal.data_imports.sources.slack.settings import ENDPOINTS
 from posthog.temporal.data_imports.sources.slack.slack import (
     slack_source,
     validate_credentials as validate_slack_credentials,
@@ -54,12 +54,12 @@ class SlackSource(SimpleSource[SlackSourceConfig], OAuthMixin):
     def get_schemas(self, config: SlackSourceConfig, team_id: int, with_counts: bool = False) -> list[SourceSchema]:
         return [
             SourceSchema(
-                name=endpoint,
-                supports_incremental=len(INCREMENTAL_FIELDS.get(endpoint, [])) > 0,
-                supports_append=len(INCREMENTAL_FIELDS.get(endpoint, [])) > 0,
-                incremental_fields=INCREMENTAL_FIELDS.get(endpoint, []),
+                name=name,
+                supports_incremental=len(endpoint_config.incremental_fields) > 0,
+                supports_append=len(endpoint_config.incremental_fields) > 0,
+                incremental_fields=endpoint_config.incremental_fields,
             )
-            for endpoint in ENDPOINTS
+            for name, endpoint_config in ENDPOINTS.items()
         ]
 
     def validate_credentials(

@@ -9,6 +9,7 @@ from dlt.sources.helpers.rest_client.paginators import BasePaginator
 from posthog.temporal.data_imports.pipelines.pipeline.typings import SourceResponse
 from posthog.temporal.data_imports.sources.common.rest_source import RESTAPIConfig, rest_api_resources
 from posthog.temporal.data_imports.sources.common.rest_source.typing import EndpointResource
+from posthog.temporal.data_imports.sources.slack.settings import ENDPOINTS
 
 
 class SlackCursorPaginator(BasePaginator):
@@ -205,38 +206,36 @@ def slack_source(
     db_incremental_field_last_value: Optional[Any] = None,
     incremental_field: str | None = None,
 ) -> SourceResponse:
+    endpoint_config = ENDPOINTS[endpoint]
+
     if endpoint == "messages":
-        return SourceResponse(
-            name="messages",
-            items=lambda: _messages_generator(access_token),
-            primary_keys=["channel_id", "ts"],
-            partition_count=1,
-            partition_size=1,
-        )
+        items = lambda: _messages_generator(access_token)
+    else:
+        config: RESTAPIConfig = {
+            "client": {
+                "base_url": "https://slack.com/api/",
+                "auth": BearerTokenAuth(token=access_token),
+                "paginator": SlackCursorPaginator(),
+            },
+            "resource_defaults": {
+                "primary_key": "id",
+                "write_disposition": "replace",
+            },
+            "resources": [get_resource(endpoint, should_use_incremental_field)],
+        }
 
-    config: RESTAPIConfig = {
-        "client": {
-            "base_url": "https://slack.com/api/",
-            "auth": BearerTokenAuth(token=access_token),
-            "paginator": SlackCursorPaginator(),
-        },
-        "resource_defaults": {
-            "primary_key": "id",
-            "write_disposition": "replace",
-        },
-        "resources": [get_resource(endpoint, should_use_incremental_field)],
-    }
-
-    resources = rest_api_resources(config, team_id, job_id, None)
-    assert len(resources) == 1
-    resource = resources[0]
+        resources = rest_api_resources(config, team_id, job_id, None)
+        assert len(resources) == 1
+        resource = resources[0]
+        items = lambda: resource
 
     return SourceResponse(
         name=endpoint,
-        items=lambda: resource,
-        primary_keys=["id"],
-        partition_count=1,
-        partition_size=1,
+        items=items,
+        primary_keys=endpoint_config.primary_keys,
+        partition_keys=endpoint_config.partition_keys,
+        partition_mode=endpoint_config.partition_mode,
+        partition_format=endpoint_config.partition_format,
     )
 
 
