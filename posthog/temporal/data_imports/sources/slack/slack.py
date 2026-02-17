@@ -171,6 +171,7 @@ def _fetch_thread_replies(
             raise Exception(f"Slack API error fetching thread replies for {channel_id}/{thread_ts}: {error}")
 
         for msg in data.get("messages", []):
+            # conversations.replies includes the parent message — skip it since it was already yielded by _fetch_messages_for_channel
             if msg.get("ts") == thread_ts and msg.get("thread_ts") == thread_ts:
                 continue
             msg["channel_id"] = channel_id
