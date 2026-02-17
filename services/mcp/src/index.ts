@@ -189,10 +189,18 @@ const handleRequest = async (
         )
     }
 
+    // Organization and project IDs can be provided via headers or query params.
+    // When set, they pin the MCP session to a specific org/project and remove the switch tools.
+    const organizationId =
+        request.headers.get('x-posthog-organization-id') || url.searchParams.get('organization_id') || undefined
+    const projectId = request.headers.get('x-posthog-project-id') || url.searchParams.get('project_id') || undefined
+
     Object.assign(ctx.props, {
         apiToken: token,
         userHash: hash(token),
         sessionId: sessionId || undefined,
+        organizationId,
+        projectId,
     })
 
     // Search params are used to build up the list of available tools. If no features are provided, all tools are available.
