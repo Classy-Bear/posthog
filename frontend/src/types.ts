@@ -3377,6 +3377,9 @@ export interface ProductTourBannerConfig {
         link?: string
         tourId?: string
     }
+    animation?: {
+        duration: number
+    }
 }
 
 export type ProductTourButtonAction = 'dismiss' | 'link' | 'next_step' | 'previous_step' | 'trigger_tour'
@@ -4087,10 +4090,20 @@ export interface EventDefinition {
     is_action?: boolean
     hidden?: boolean
     default_columns?: string[]
+    media_preview_urls?: string[]
 }
 
 export interface EventDefinitionMetrics {
     query_usage_30_day: number
+}
+
+export interface ObjectMediaPreview {
+    id: string
+    created_at: string
+    updated_at: string
+    media_url: string
+    media_type: 'uploaded' | 'exported'
+    metadata?: Record<string, any>
 }
 
 export enum PropertyType {
@@ -4948,6 +4961,7 @@ export type APIScopeObject =
     | 'export'
     | 'feature_flag'
     | 'group'
+    | 'health_issue'
     | 'hog_function'
     | 'insight'
     | 'insight_variable'
