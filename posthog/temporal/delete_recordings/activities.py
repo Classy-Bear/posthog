@@ -23,6 +23,7 @@ from posthog.temporal.common.logger import get_write_only_logger
 from posthog.temporal.delete_recordings.types import (
     BulkDeleteInput,
     BulkDeleteResult,
+    DeleteFailure,
     LoadRecordingError,
     PurgeDeletedMetadataInput,
     PurgeDeletedMetadataResult,
@@ -164,11 +165,14 @@ async def purge_deleted_metadata(input: PurgeDeletedMetadataInput) -> PurgeDelet
 
     query_id = str(uuid4())
 
+    if not (1 <= input.grace_period_days <= 365):
+        raise ValueError(f"grace_period_days must be between 1 and 365, got {input.grace_period_days}")
+
     delete_query = f"""
         DELETE FROM sharded_session_replay_events
         ON CLUSTER '{CLICKHOUSE_CLUSTER}'
         WHERE is_deleted = 1
-          AND _timestamp < now() - INTERVAL {input.grace_period_days} DAY
+          AND _timestamp < now() - INTERVAL {{grace_period_days:Int32}} DAY
     """
 
     logger.info("Executing delete query", query_id=query_id)
@@ -176,6 +180,7 @@ async def purge_deleted_metadata(input: PurgeDeletedMetadataInput) -> PurgeDelet
         await client.execute_query(
             delete_query,
             query_id=query_id,
+            query_parameters={"grace_period_days": input.grace_period_days},
         )
 
     completed_at = datetime.now(UTC)
@@ -203,13 +208,17 @@ async def bulk_delete_recordings(input: BulkDeleteInput) -> BulkDeleteResult:
 
     url = f"{recording_api_url}/api/projects/{input.team_id}/recordings/bulk_delete"
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    headers: dict[str, str] = {}
+    if settings.INTERNAL_API_SECRET:
+        headers["X-Internal-Api-Secret"] = settings.INTERNAL_API_SECRET
+
+    async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
         response = await client.post(url, json={"session_ids": input.session_ids})
         response.raise_for_status()
         data = response.json()
 
     deleted: list[str] = data.get("deleted", [])
-    failed: list[dict] = data.get("failed", [])
+    failed = [DeleteFailure(**entry) for entry in data.get("failed", [])]
 
     logger.info(
         "Delete batch completed",

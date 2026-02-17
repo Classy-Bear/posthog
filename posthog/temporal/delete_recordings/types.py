@@ -32,12 +32,17 @@ class BulkDeleteInput(BaseModel):
     session_ids: list[str]
 
 
+class DeleteFailure(BaseModel):
+    session_id: str
+    error: str
+
+
 class BulkDeleteResult(BaseModel):
     deleted: list[str]
-    failed: list[dict]
+    failed: list[DeleteFailure]
 
 
-class DeletedRecordingEntry(BaseModel):
+class DeleteSuccess(BaseModel):
     session_id: str
     deleted_at: datetime
 
@@ -62,8 +67,8 @@ class DeletionCertificate(BaseModel):
     total_failed: int
 
     # Detailed records
-    deleted_recordings: list[DeletedRecordingEntry]
-    failed: list[dict]
+    deleted_recordings: list[DeleteSuccess]
+    failed: list[DeleteFailure]
 
 
 class LoadRecordingError(Exception):
@@ -73,7 +78,7 @@ class LoadRecordingError(Exception):
 class PurgeDeletedMetadataInput(BaseModel):
     """Input for the nightly metadata purge workflow."""
 
-    grace_period_days: int = 7
+    grace_period_days: int = 10
 
 
 class PurgeDeletedMetadataResult(BaseModel):

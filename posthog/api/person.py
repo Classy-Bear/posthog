@@ -1075,7 +1075,7 @@ class PersonViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
                     distinct_ids=person.distinct_ids,
                     team_id=self.team_id,
                 )
-                workflow_id = f"delete-recordings-with-person-{person.uuid}-{uuid.uuid4()}"
+                workflow_id = f"delete-recordings-{self.team_id}-person-{person.uuid}-{uuid.uuid4()}"
                 tasks.append(
                     temporal.start_workflow(
                         "delete-recordings-with-person",

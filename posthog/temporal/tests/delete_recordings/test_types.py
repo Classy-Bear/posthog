@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 from posthog.temporal.delete_recordings.types import (
     BulkDeleteInput,
     BulkDeleteResult,
-    DeletedRecordingEntry,
+    DeleteFailure,
+    DeleteSuccess,
     PurgeDeletedMetadataInput,
     PurgeDeletedMetadataResult,
     RecordingsWithPersonInput,
@@ -68,15 +69,15 @@ def test_bulk_delete_input_creation():
 def test_bulk_delete_result_creation():
     result = BulkDeleteResult(
         deleted=["session-1", "session-2"],
-        failed=[{"session_id": "session-3", "error": "Unknown error"}],
+        failed=[DeleteFailure(session_id="session-3", error="Unknown error")],
     )
     assert result.deleted == ["session-1", "session-2"]
-    assert result.failed == [{"session_id": "session-3", "error": "Unknown error"}]
+    assert result.failed == [DeleteFailure(session_id="session-3", error="Unknown error")]
 
 
 def test_deleted_recording_entry_creation():
     now = datetime.now(UTC)
-    entry = DeletedRecordingEntry(session_id="session-123", deleted_at=now)
+    entry = DeleteSuccess(session_id="session-123", deleted_at=now)
     assert entry.session_id == "session-123"
     assert entry.deleted_at == now
 
@@ -88,7 +89,7 @@ def test_purge_deleted_metadata_input_creation():
 
 def test_purge_deleted_metadata_input_defaults():
     input = PurgeDeletedMetadataInput()
-    assert input.grace_period_days == 7
+    assert input.grace_period_days == 10
 
 
 def test_purge_deleted_metadata_result_creation():

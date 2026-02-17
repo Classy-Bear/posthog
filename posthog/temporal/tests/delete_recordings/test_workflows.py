@@ -10,6 +10,7 @@ from temporalio.worker import Worker
 from posthog.temporal.delete_recordings.types import (
     BulkDeleteInput,
     BulkDeleteResult,
+    DeleteFailure,
     DeletionCertificate,
     PurgeDeletedMetadataInput,
     PurgeDeletedMetadataResult,
@@ -467,8 +468,8 @@ async def test_delete_recordings_certificate_with_mixed_results():
         return BulkDeleteResult(
             deleted=["session-1", "session-2"],
             failed=[
-                {"session_id": "session-3", "error": "Key not found"},
-                {"session_id": "session-4", "error": "Timeout"},
+                DeleteFailure(session_id="session-3", error="Key not found"),
+                DeleteFailure(session_id="session-4", error="Timeout"),
             ],
         )
 
@@ -501,8 +502,8 @@ async def test_delete_recordings_certificate_with_mixed_results():
     assert len(certificate.deleted_recordings) == 2
     assert sorted([r.session_id for r in certificate.deleted_recordings]) == ["session-1", "session-2"]
     assert certificate.failed == [
-        {"session_id": "session-3", "error": "Key not found"},
-        {"session_id": "session-4", "error": "Timeout"},
+        DeleteFailure(session_id="session-3", error="Key not found"),
+        DeleteFailure(session_id="session-4", error="Timeout"),
     ]
 
 
