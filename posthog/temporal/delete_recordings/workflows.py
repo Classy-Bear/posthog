@@ -41,16 +41,12 @@ def _build_certificate(
     completed_at = datetime.now(UTC)
 
     deleted_recordings: list[DeletedRecordingEntry] = []
-    not_found_session_ids: list[str] = []
-    already_deleted_session_ids: list[str] = []
-    all_errors: list[dict] = []
+    all_failed: list[dict] = []
 
     for result in results:
         for session_id in result.deleted:
             deleted_recordings.append(DeletedRecordingEntry(session_id=session_id, deleted_at=completed_at))
-        not_found_session_ids.extend(result.not_found)
-        already_deleted_session_ids.extend(result.already_deleted)
-        all_errors.extend(result.errors)
+        all_failed.extend(result.failed)
 
     return DeletionCertificate(
         workflow_type=workflow_type,
@@ -63,13 +59,9 @@ def _build_certificate(
         query=query,
         total_recordings_found=total_recordings_found,
         total_deleted=len(deleted_recordings),
-        total_not_found=len(not_found_session_ids),
-        total_already_deleted=len(already_deleted_session_ids),
-        total_errors=len(all_errors),
+        total_failed=len(all_failed),
+        failed=all_failed,
         deleted_recordings=deleted_recordings,
-        not_found_session_ids=not_found_session_ids,
-        already_deleted_session_ids=already_deleted_session_ids,
-        errors=all_errors,
     )
 
 
@@ -97,18 +89,19 @@ class DeleteRecordingsWithPersonWorkflow(PostHogWorkflow):
         )
 
         results: list[BulkDeleteResult] = []
-        for batch in batched(session_ids, input.batch_size):
-            result = await workflow.execute_activity(
-                bulk_delete_recordings,
-                BulkDeleteInput(team_id=input.team_id, session_ids=list(batch)),
-                start_to_close_timeout=timedelta(minutes=10),
-                schedule_to_close_timeout=timedelta(hours=3),
-                retry_policy=common.RetryPolicy(
-                    maximum_attempts=3,
-                    initial_interval=timedelta(minutes=1),
-                ),
-            )
-            results.append(result)
+        if not input.dry_run:
+            for batch in batched(session_ids, input.batch_size):
+                result = await workflow.execute_activity(
+                    bulk_delete_recordings,
+                    BulkDeleteInput(team_id=input.team_id, session_ids=list(batch)),
+                    start_to_close_timeout=timedelta(minutes=10),
+                    schedule_to_close_timeout=timedelta(hours=3),
+                    retry_policy=common.RetryPolicy(
+                        maximum_attempts=3,
+                        initial_interval=timedelta(minutes=1),
+                    ),
+                )
+                results.append(result)
 
         return _build_certificate(
             workflow_type="person",
@@ -117,7 +110,7 @@ class DeleteRecordingsWithPersonWorkflow(PostHogWorkflow):
             started_at=started_at,
             total_recordings_found=len(session_ids),
             results=results,
-            dry_run=False,
+            dry_run=input.dry_run,
             distinct_ids=input.distinct_ids,
         )
 

@@ -192,7 +192,7 @@ async def purge_deleted_metadata(input: PurgeDeletedMetadataInput) -> PurgeDelet
 
 @activity.defn(name="bulk-delete-recordings")
 async def bulk_delete_recordings(input: BulkDeleteInput) -> BulkDeleteResult:
-    """Call the recording API delete endpoint for each recording."""
+    """Bulk delete recordings via the recording API bulk-delete endpoint."""
     bind_contextvars(team_id=input.team_id, session_count=len(input.session_ids))
     logger = LOGGER.bind()
     logger.info("Deleting recordings via recording API")
@@ -201,47 +201,20 @@ async def bulk_delete_recordings(input: BulkDeleteInput) -> BulkDeleteResult:
     if not recording_api_url:
         raise RuntimeError("RECORDING_API_URL is not configured")
 
-    deleted: list[str] = []
-    not_found: list[str] = []
-    already_deleted: list[str] = []
-    errors: list[dict[str, str]] = []
+    url = f"{recording_api_url}/api/projects/{input.team_id}/recordings/bulk_delete"
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for session_id in input.session_ids:
-            url = f"{recording_api_url}/api/projects/{input.team_id}/recordings/{session_id}"
-            try:
-                response = await client.delete(url)
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(url, json={"session_ids": input.session_ids})
+        response.raise_for_status()
+        data = response.json()
 
-                if response.status_code == 200:
-                    deleted.append(session_id)
-                elif response.status_code == 404:
-                    not_found.append(session_id)
-                elif response.status_code == 410:
-                    already_deleted.append(session_id)
-                else:
-                    error_text = response.text
-                    logger.warning(
-                        "Recording API delete failed",
-                        session_id=session_id,
-                        status_code=response.status_code,
-                        error=error_text,
-                    )
-                    errors.append({"session_id": session_id, "error": f"Status {response.status_code}: {error_text}"})
-            except Exception as e:
-                logger.warning("Recording API delete request failed", session_id=session_id, error=str(e))
-                errors.append({"session_id": session_id, "error": str(e)})
+    deleted: list[str] = data.get("deleted", [])
+    failed: list[dict] = data.get("failed", [])
 
     logger.info(
         "Delete batch completed",
         deleted_count=len(deleted),
-        not_found_count=len(not_found),
-        already_deleted_count=len(already_deleted),
-        error_count=len(errors),
+        failed_count=len(failed),
     )
 
-    return BulkDeleteResult(
-        deleted=deleted,
-        not_found=not_found,
-        already_deleted=already_deleted,
-        errors=errors,
-    )
+    return BulkDeleteResult(deleted=deleted, failed=failed)

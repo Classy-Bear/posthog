@@ -1,26 +1,29 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+MAX_BULK_DELETE_BATCH_SIZE = 100
 
 
 class RecordingsWithPersonInput(BaseModel):
     distinct_ids: list[str]
     team_id: int
-    batch_size: int = 100
+    dry_run: bool = False
+    batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
 
 
 class RecordingsWithTeamInput(BaseModel):
     team_id: int
     dry_run: bool = False
-    batch_size: int = 100
+    batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
 
 
 class RecordingsWithQueryInput(BaseModel):
     query: str
     team_id: int
     dry_run: bool = False
-    batch_size: int = 100
+    batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
     query_limit: int = 100
 
 
@@ -31,9 +34,7 @@ class BulkDeleteInput(BaseModel):
 
 class BulkDeleteResult(BaseModel):
     deleted: list[str]
-    not_found: list[str]
-    already_deleted: list[str]
-    errors: list[dict]
+    failed: list[dict]
 
 
 class DeletedRecordingEntry(BaseModel):
@@ -58,15 +59,11 @@ class DeletionCertificate(BaseModel):
     # Summary statistics
     total_recordings_found: int
     total_deleted: int
-    total_not_found: int
-    total_already_deleted: int
-    total_errors: int
+    total_failed: int
 
     # Detailed records
     deleted_recordings: list[DeletedRecordingEntry]
-    not_found_session_ids: list[str]
-    already_deleted_session_ids: list[str]
-    errors: list[dict]
+    failed: list[dict]
 
 
 class LoadRecordingError(Exception):
