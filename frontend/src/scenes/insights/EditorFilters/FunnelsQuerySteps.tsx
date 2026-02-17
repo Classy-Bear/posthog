@@ -2,7 +2,8 @@ import { useActions, useValues } from 'kea'
 
 import { Tooltip } from '@posthog/lemon-ui'
 
-import { TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
+import { defaultDataWarehousePopoverFields } from 'lib/components/TaxonomicFilter/taxonomicFilterLogic'
+import { DataWarehousePopoverField, TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
 import { FEATURE_FLAGS } from 'lib/constants'
 import { LemonLabel } from 'lib/lemon-ui/LemonLabel/LemonLabel'
 import { featureFlagLogic } from 'lib/logic/featureFlagLogic'
@@ -29,6 +30,7 @@ export function FunnelsQuerySteps({ insightProps }: EditorFilterProps): JSX.Elem
     const { updateQuerySource } = useActions(insightVizDataLogic(insightProps))
     const { featureFlags } = useValues(featureFlagLogic)
     const supportsDwhFunnels = featureFlags[FEATURE_FLAGS.PRODUCT_ANALYTICS_FUNNEL_DWH_SUPPORT]
+    const isFunnelDwhStepPopoverVariant = featureFlags[FEATURE_FLAGS.PRODUCT_ANALYTICS_FUNNEL_DWH_STEP_UI] === 'popover'
 
     const actionFilters = isInsightQueryNode(querySource) ? queryNodeToFilter(querySource) : null
     const setActionFilters = (payload: Partial<FilterType>): void => {
