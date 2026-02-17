@@ -76,11 +76,12 @@ def get_resource(name: str, should_use_incremental_field: bool) -> EndpointResou
 
 def _fetch_all_channels(access_token: str) -> list[dict[str, Any]]:
     channels: list[dict[str, Any]] = []
+    has_more = True
     cursor: str | None = None
     url = "https://slack.com/api/conversations.list"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    while True:
+    while has_more:
         params: dict[str, Any] = {
             "types": "public_channel,private_channel",
             "limit": 200,
@@ -98,11 +99,8 @@ def _fetch_all_channels(access_token: str) -> list[dict[str, Any]]:
 
         channels.extend(data.get("channels", []))
 
-        next_cursor = data.get("response_metadata", {}).get("next_cursor", "")
-        if next_cursor:
-            cursor = next_cursor
-        else:
-            break
+        cursor = data.get("response_metadata", {}).get("next_cursor", "") or None
+        has_more = cursor is not None
 
     return channels
 
@@ -111,11 +109,12 @@ def _fetch_messages_for_channel(
     access_token: str,
     channel_id: str,
 ) -> Iterator[dict[str, Any]]:
+    has_more = True
     cursor: str | None = None
     url = "https://slack.com/api/conversations.history"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    while True:
+    while has_more:
         params: dict[str, Any] = {
             "channel": channel_id,
             "limit": 200,
@@ -138,11 +137,8 @@ def _fetch_messages_for_channel(
             msg["channel_id"] = channel_id
             yield msg
 
-        next_cursor = data.get("response_metadata", {}).get("next_cursor", "")
-        if next_cursor:
-            cursor = next_cursor
-        else:
-            break
+        cursor = data.get("response_metadata", {}).get("next_cursor", "") or None
+        has_more = cursor is not None
 
 
 def _fetch_thread_replies(
@@ -151,11 +147,12 @@ def _fetch_thread_replies(
     thread_ts: str,
 ) -> Iterator[dict[str, Any]]:
     """Fetch replies for a single thread, excluding the parent message."""
+    has_more = True
     cursor: str | None = None
     url = "https://slack.com/api/conversations.replies"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    while True:
+    while has_more:
         params: dict[str, Any] = {
             "channel": channel_id,
             "ts": thread_ts,
@@ -179,11 +176,8 @@ def _fetch_thread_replies(
             msg["channel_id"] = channel_id
             yield msg
 
-        next_cursor = data.get("response_metadata", {}).get("next_cursor", "")
-        if next_cursor:
-            cursor = next_cursor
-        else:
-            break
+        cursor = data.get("response_metadata", {}).get("next_cursor", "") or None
+        has_more = cursor is not None
 
 
 def _add_timestamp(msg: dict[str, Any]) -> dict[str, Any]:
