@@ -123,4 +123,38 @@ export const FunnelTimeToConvertEdit: Story = createInsightStory(
 )
 FunnelTimeToConvertEdit.parameters = { testOptions: { waitForSelector: '[data-attr=funnel-histogram] svg' } }
 
+// Viewport variants to verify the gap between filters and visualization stays consistent
+export const FunnelLeftToRightEditNarrow: Story = createInsightStory(
+    require('../../mocks/fixtures/api/projects/team_id/insights/funnelLeftToRight.json'),
+    'edit'
+)
+FunnelLeftToRightEditNarrow.parameters = {
+    testOptions: {
+        waitForSelector: ['[data-attr=funnel-bar-vertical] .StepBar', '.PayGateMini'],
+        viewport: { width: 960, height: 720 },
+    },
+}
+
+export const FunnelLeftToRightEditMedium: Story = createInsightStory(
+    require('../../mocks/fixtures/api/projects/team_id/insights/funnelLeftToRight.json'),
+    'edit'
+)
+FunnelLeftToRightEditMedium.parameters = {
+    testOptions: {
+        waitForSelector: ['[data-attr=funnel-bar-vertical] .StepBar', '.PayGateMini'],
+        viewport: { width: 1300, height: 720 },
+    },
+}
+
+export const FunnelLeftToRightEditWide: Story = createInsightStory(
+    require('../../mocks/fixtures/api/projects/team_id/insights/funnelLeftToRight.json'),
+    'edit'
+)
+FunnelLeftToRightEditWide.parameters = {
+    testOptions: {
+        waitForSelector: ['[data-attr=funnel-bar-vertical] .StepBar', '.PayGateMini'],
+        viewport: { width: 1920, height: 720 },
+    },
+}
+
 /* eslint-enable @typescript-eslint/no-var-requires */
