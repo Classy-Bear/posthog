@@ -153,8 +153,14 @@ export function getExplainerStepContent(): JSONContent {
 }
 
 export function getDefaultSurveyContent(type: ProductTourSurveyQuestionType): ProductTourSurveyQuestion {
+    const defaults: Partial<ProductTourSurveyQuestion> = {
+        backButtonText: 'Back',
+        submitButtonText: 'Submit',
+    }
+
     if (type === 'rating') {
         return {
+            ...defaults,
             type: 'rating',
             questionText: DEFAULT_RATING_QUESTION,
             display: 'emoji',
@@ -164,6 +170,7 @@ export function getDefaultSurveyContent(type: ProductTourSurveyQuestionType): Pr
         }
     }
     return {
+        ...defaults,
         type: 'open',
         questionText: DEFAULT_OPEN_QUESTION,
     }
