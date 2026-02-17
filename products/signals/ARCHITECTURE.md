@@ -226,13 +226,12 @@ await emit_signal(
 **Guards:**
 
 - Team must have `is_ai_data_processing_approved` on their organization
-- Feature flag `product-autonomy` must be enabled for the team
 
 Starts an `EmitSignalWorkflow` via Temporal with `ALLOW_DUPLICATE_FAILED_ONLY` reuse policy.
 
 ### REST Endpoints
 
-Registered via `register_signal_report_routes()` in `backend/urls.py`.
+Registered directly in `posthog/api/__init__.py` (imported as `products.signals.backend.views`).
 
 #### `SignalViewSet` (DEBUG only)
 
@@ -242,7 +241,7 @@ Registered via `register_signal_report_routes()` in `backend/urls.py`.
 
 #### `SignalReportViewSet` (read-only)
 
-Feature-flagged behind `product-autonomy`.
+Uses `IsAuthenticated` + `APIScopePermission` (scope: `task`).
 
 | Method | Path                                | Description                                                               |
 | ------ | ----------------------------------- | ------------------------------------------------------------------------- |
