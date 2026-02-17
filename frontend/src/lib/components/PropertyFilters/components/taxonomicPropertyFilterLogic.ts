@@ -100,7 +100,10 @@ export const taxonomicPropertyFilterLogic = kea<taxonomicPropertyFilterLogicType
                 return
             }
 
-            if (taxonomicGroup.type === TaxonomicFilterGroupType.PageviewEvents) {
+            if (
+                taxonomicGroup.type === TaxonomicFilterGroupType.PageviewEvents ||
+                taxonomicGroup.type === TaxonomicFilterGroupType.PageviewUrls
+            ) {
                 const filter: EventPropertyFilter = {
                     key: '$current_url',
                     value: propertyKey ? String(propertyKey) : '',
@@ -112,7 +115,10 @@ export const taxonomicPropertyFilterLogic = kea<taxonomicPropertyFilterLogicType
                 return
             }
 
-            if (taxonomicGroup.type === TaxonomicFilterGroupType.ScreenEvents) {
+            if (
+                taxonomicGroup.type === TaxonomicFilterGroupType.ScreenEvents ||
+                taxonomicGroup.type === TaxonomicFilterGroupType.Screens
+            ) {
                 const filter: EventPropertyFilter = {
                     key: '$screen_name',
                     value: propertyKey ? String(propertyKey) : '',

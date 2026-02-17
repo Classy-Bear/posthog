@@ -339,29 +339,53 @@ function DefinitionView({ group }: { group: TaxonomicFilterGroup }): JSX.Element
     }
     if (
         group.type === TaxonomicFilterGroupType.PageviewEvents ||
-        group.type === TaxonomicFilterGroupType.ScreenEvents
+        group.type === TaxonomicFilterGroupType.ScreenEvents ||
+        group.type === TaxonomicFilterGroupType.PageviewUrls ||
+        group.type === TaxonomicFilterGroupType.Screens
     ) {
         const _definition = definition as SimpleOption
-        const isPageview = group.type === TaxonomicFilterGroupType.PageviewEvents
-        const eventName = isPageview ? '$pageview' : '$screen'
-        const eventDescription = isPageview
-            ? 'When a user loads (or reloads) a page.'
-            : 'When a user loads a screen in a mobile app.'
+        const isPageview =
+            group.type === TaxonomicFilterGroupType.PageviewEvents ||
+            group.type === TaxonomicFilterGroupType.PageviewUrls
+        const isEventMode =
+            group.type === TaxonomicFilterGroupType.PageviewEvents ||
+            group.type === TaxonomicFilterGroupType.ScreenEvents
         const propertyName = isPageview ? '$current_url' : '$screen_name'
-        const eventLabel = getFilterLabel(eventName, TaxonomicFilterGroupType.Events)
         const propertyLabel = getFilterLabel(propertyName, TaxonomicFilterGroupType.EventProperties)
+
+        if (isEventMode) {
+            const eventName = isPageview ? '$pageview' : '$screen'
+            const eventDescription = isPageview
+                ? 'When a user loads (or reloads) a page.'
+                : 'When a user loads a screen in a mobile app.'
+            const eventLabel = getFilterLabel(eventName, TaxonomicFilterGroupType.Events)
+
+            return (
+                <>
+                    <DefinitionPopover.Description
+                        description={
+                            <>
+                                {eventDescription}
+                                <br />
+                                <br />
+                                Selecting this will add a <span className="font-semibold">{eventLabel}</span> event
+                                filtered by <span className="font-semibold">{propertyLabel}</span> matching{' '}
+                                <span className="font-semibold break-all">{_definition.name}</span>.
+                            </>
+                        }
+                    />
+                    <DefinitionPopover.Example value={_definition.name} />
+                </>
+            )
+        }
 
         return (
             <>
                 <DefinitionPopover.Description
                     description={
                         <>
-                            {eventDescription}
-                            <br />
-                            <br />
-                            Selecting this will add a <span className="font-semibold">{eventLabel}</span> event filtered
-                            by <span className="font-semibold">{propertyLabel}</span> matching{' '}
-                            <span className="font-semibold break-all">{_definition.name}</span>.
+                            Selecting this will filter by <span className="font-semibold">{propertyLabel}</span>{' '}
+                            matching <span className="font-semibold break-all">{_definition.name}</span>.
                         </>
                     }
                 />
