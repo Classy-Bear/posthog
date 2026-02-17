@@ -1,7 +1,7 @@
 import { actions, afterMount, connect, defaults, kea, key, listeners, path, props, reducers, selectors } from 'kea'
 import { forms } from 'kea-forms'
 import { loaders } from 'kea-loaders'
-import { router, combineUrl } from 'kea-router'
+import { combineUrl, router } from 'kea-router'
 
 import api, { CountedPaginatedResponse } from '~/lib/api'
 import { lemonToast } from '~/lib/lemon-ui/LemonToast/LemonToast'

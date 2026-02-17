@@ -32,11 +32,13 @@ test.describe('Dashboards', () => {
         const dashboard = new DashboardPage(page)
         const insight = new InsightPage(page)
         const updatedName = randomString('dash-updated')
+        let dashboardUrl: string | null = null
 
         await test.step('create a dashboard with an insight', async () => {
             await dashboard.createNew()
             await dashboard.addInsightToNewDashboard()
             await expect(page.locator('.InsightCard')).toBeVisible()
+            dashboardUrl = page.url()
         })
 
         await test.step('select to edit an insight', async () => {
@@ -51,10 +53,12 @@ test.describe('Dashboards', () => {
         })
 
         await test.step('navigate back and verify the updated insight on the dashboard', async () => {
-            await page.goBack()
+            await page.goto(dashboardUrl ?? '/dashboard', { waitUntil: 'domcontentloaded' })
 
             await expect(page).toHaveURL(/\/dashboard\//)
-            await expect(page.getByText(updatedName)).toBeVisible()
+            await expect(page.locator('.InsightCard').first().getByTestId('insight-card-title')).toContainText(
+                updatedName
+            )
         })
     })
 
