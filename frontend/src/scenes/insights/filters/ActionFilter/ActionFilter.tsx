@@ -105,6 +105,7 @@ export interface ActionFilterProps {
     /** Allow adding non-captured events */
     allowNonCapturedEvents?: boolean
     hogQLGlobals?: Record<string, any>
+    definitionPopoverRenderer?: DefinitionPopoverRenderer
 }
 
 export const ActionFilter = React.forwardRef<HTMLDivElement, ActionFilterProps>(function ActionFilter(
@@ -142,6 +143,7 @@ export const ActionFilter = React.forwardRef<HTMLDivElement, ActionFilterProps>(
         excludedProperties,
         allowNonCapturedEvents,
         hogQLGlobals,
+        definitionPopoverRenderer,
     },
     ref
 ): JSX.Element {
@@ -271,6 +273,7 @@ export const ActionFilter = React.forwardRef<HTMLDivElement, ActionFilterProps>(
                                         dataWarehousePopoverFields={dataWarehousePopoverFields}
                                         excludedProperties={excludedProperties}
                                         insightType={filters.insight}
+                                        definitionPopoverRenderer={definitionPopoverRenderer}
                                     />
                                 ) : (
                                     <ActionFilterRow
@@ -287,6 +290,7 @@ export const ActionFilter = React.forwardRef<HTMLDivElement, ActionFilterProps>(
                                                 ? hideDeleteBtn(filter, index)
                                                 : hideDeleteBtn
                                         }
+                                        definitionPopoverRenderer={definitionPopoverRenderer}
                                         {...commonProps}
                                     />
                                 )

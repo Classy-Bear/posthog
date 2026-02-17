@@ -2,8 +2,7 @@ import { useActions, useValues } from 'kea'
 
 import { Tooltip } from '@posthog/lemon-ui'
 
-import { defaultDataWarehousePopoverFields } from 'lib/components/TaxonomicFilter/taxonomicFilterLogic'
-import { DataWarehousePopoverField, TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
+import { TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
 import { FEATURE_FLAGS } from 'lib/constants'
 import { LemonLabel } from 'lib/lemon-ui/LemonLabel/LemonLabel'
 import { featureFlagLogic } from 'lib/logic/featureFlagLogic'
@@ -22,6 +21,7 @@ import { ActionFilter } from '../filters/ActionFilter/ActionFilter'
 import { AggregationSelect } from '../filters/AggregationSelect'
 import { FunnelConversionWindowFilter } from '../views/Funnels/FunnelConversionWindowFilter'
 import { FunnelVizType } from '../views/Funnels/FunnelVizType'
+import { FunnelDataWarehouseStepDefinitionPopover } from './FunnelDataWarehouseStepDefinitionPopover'
 
 export const FUNNEL_STEP_COUNT_LIMIT = 30
 
@@ -30,7 +30,8 @@ export function FunnelsQuerySteps({ insightProps }: EditorFilterProps): JSX.Elem
     const { updateQuerySource } = useActions(insightVizDataLogic(insightProps))
     const { featureFlags } = useValues(featureFlagLogic)
     const supportsDwhFunnels = featureFlags[FEATURE_FLAGS.PRODUCT_ANALYTICS_FUNNEL_DWH_SUPPORT]
-    const isFunnelDwhStepPopoverVariant = featureFlags[FEATURE_FLAGS.PRODUCT_ANALYTICS_FUNNEL_DWH_STEP_UI] === 'popover'
+    const isFunnelDwhStepPopoverVariant =
+        supportsDwhFunnels && featureFlags[FEATURE_FLAGS.PRODUCT_ANALYTICS_FUNNEL_DWH_STEP_UI] === 'popover'
 
     const actionFilters = isInsightQueryNode(querySource) ? queryNodeToFilter(querySource) : null
     const setActionFilters = (payload: Partial<FilterType>): void => {
@@ -91,6 +92,9 @@ export function FunnelsQuerySteps({ insightProps }: EditorFilterProps): JSX.Elem
                     TaxonomicFilterGroupType.Actions,
                     ...(supportsDwhFunnels ? [TaxonomicFilterGroupType.DataWarehouse] : []),
                 ]}
+                definitionPopoverRenderer={
+                    isFunnelDwhStepPopoverVariant ? FunnelDataWarehouseStepDefinitionPopover : undefined
+                }
             />
             <div className="mt-4 deprecated-space-y-4">
                 {showGroupsOptions && (
