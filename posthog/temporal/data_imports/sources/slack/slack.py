@@ -1,3 +1,4 @@
+import datetime
 from collections.abc import Callable, Iterable, Iterator
 from typing import Any, Optional
 
@@ -185,6 +186,13 @@ def _fetch_thread_replies(
             break
 
 
+def _add_timestamp(msg: dict[str, Any]) -> dict[str, Any]:
+    ts = msg.get("ts")
+    if ts:
+        msg["timestamp"] = datetime.datetime.fromtimestamp(float(ts), tz=datetime.UTC).isoformat()
+    return msg
+
+
 def _messages_generator(
     access_token: str,
 ) -> Iterator[dict[str, Any]]:
@@ -192,9 +200,10 @@ def _messages_generator(
     for channel in channels:
         channel_id = channel["id"]
         for msg in _fetch_messages_for_channel(access_token, channel_id):
-            yield msg
+            yield _add_timestamp(msg)
             if msg.get("reply_count", 0) > 0:
-                yield from _fetch_thread_replies(access_token, channel_id, msg["ts"])
+                for reply in _fetch_thread_replies(access_token, channel_id, msg["ts"]):
+                    yield _add_timestamp(reply)
 
 
 def slack_source(

@@ -20,7 +20,7 @@ ENDPOINTS: dict[str, EndpointConfig] = {
     "users": EndpointConfig(),
     "messages": EndpointConfig(
         primary_keys=["channel_id", "ts"],
-        partition_keys=["ts"],
+        partition_keys=["timestamp"],
         partition_mode="datetime",
         partition_format="week",
     ),
