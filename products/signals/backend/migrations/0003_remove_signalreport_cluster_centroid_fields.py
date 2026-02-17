@@ -8,8 +8,8 @@ class Migration(migrations.Migration):
         ("signals", "0002_signalreport_clustering_fields"),
     ]
 
-    # Step 1: Remove fields from Django model state only (columns kept in DB for rollback safety).
-    # Step 2 (future migration): Actually drop the columns after a full deploy cycle.
+    # Remove fields from Django model state only (columns kept in DB for rollback safety). This satisfies our migration risk checker.
+    # The follow-up is to actually drop the columns after a full deploy cycle. Not important or urgent though.
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[

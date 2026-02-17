@@ -157,8 +157,8 @@ async def emit_signals_from_clusters_activity(inputs: EmitSignalsActivityInputs)
         try:
             await emit_signal(
                 team=team,
-                source_product="session_recordings",
-                source_type="segment_cluster",
+                source_product="session_replay",
+                source_type="session_segment_cluster",
                 source_id=f"{team.id}:{activity.info().workflow_id}:{cluster.cluster_id}",
                 description=cluster_label.description,
                 weight=weight,
@@ -174,8 +174,8 @@ async def emit_signals_from_clusters_activity(inputs: EmitSignalsActivityInputs)
             )
             signals_emitted += 1
             logger.info("Emitted signal for cluster", cluster_id=cluster.cluster_id)
-        except Exception as e:
-            logger.error("Failed to emit signal for cluster", cluster_id=cluster.cluster_id, error=str(e))
+        except Exception:
+            logger.exception("Failed to emit signal for cluster", cluster_id=cluster.cluster_id)
             clusters_skipped += 1
             continue
 
@@ -227,7 +227,8 @@ async def _call_llm_to_label_cluster(
 ) -> ClusterLabel:
     if not context.segment_contents:
         raise ValueError("No segment contents provided")
-
+    # Build prompt with full context
+    logger.info("Generating label for cluster", cluster_id=context.cluster_id)
     segment_texts = [f"{i}. {content}" for i, content in enumerate(context.segment_contents, 1)]
     user_prompt = LABELING_USER_PROMPT_TEMPLATE.format(
         sample_count=len(context.segment_contents),
@@ -270,5 +271,5 @@ async def _call_llm_to_label_cluster(
             prompt_parts.append(
                 types.Part(text=f"\n\nAttempt {attempt + 1} failed with error: {e!r}\nPlease fix your output.")
             )
-
+    # Should never reach here, but satisfy type checker
     raise RuntimeError("Unreachable")
