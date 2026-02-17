@@ -72,7 +72,7 @@ async def fetch_signals_for_report_activity(input: FetchSignalsForReportInput) -
                   AND document_type = 'signal'
                 GROUP BY document_id
             )
-            Where JSONExtractString(metadata, 'report_id') = {report_id}
+            WHERE JSONExtractString(metadata, 'report_id') = {report_id}
             ORDER BY timestamp ASC
         """
 
@@ -222,7 +222,7 @@ async def mark_report_failed_activity(input: MarkReportFailedInput) -> None:
 
 
 @dataclass
-class MarkReportPendingInputInput:
+class MarkReportPendingInput:
     report_id: str
     title: str
     summary: str
@@ -230,7 +230,7 @@ class MarkReportPendingInputInput:
 
 
 @temporalio.activity.defn
-async def mark_report_pending_input_activity(input: MarkReportPendingInputInput) -> None:
+async def mark_report_pending_input_activity(input: MarkReportPendingInput) -> None:
     """Mark a report as pending human input, storing the draft title/summary for human review."""
     try:
 
@@ -411,7 +411,7 @@ class SignalReportSummaryWorkflow:
                 )
                 await workflow.execute_activity(
                     mark_report_pending_input_activity,
-                    MarkReportPendingInputInput(
+                    MarkReportPendingInput(
                         report_id=inputs.report_id,
                         title=summarize_result.title,
                         summary=summarize_result.summary,
