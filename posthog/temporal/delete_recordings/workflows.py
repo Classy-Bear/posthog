@@ -23,6 +23,7 @@ from posthog.temporal.delete_recordings.types import (
     PurgeDeletedMetadataResult,
     RecordingsWithPersonInput,
     RecordingsWithQueryInput,
+    RecordingsWithSessionIdsInput,
     RecordingsWithTeamInput,
 )
 
@@ -49,13 +50,14 @@ MAX_CERTIFICATE_ENTRIES = 10_000
 
 
 def _build_certificate(
-    workflow_type: Literal["person", "team", "query"],
+    workflow_type: Literal["person", "team", "query", "session_ids"],
     workflow_id: str,
     team_id: int,
     started_at: datetime,
     total_recordings_found: int,
     results: list[BulkDeleteResult],
     dry_run: bool = False,
+    reason: str = "",
     distinct_ids: list[str] | None = None,
     query: str | None = None,
 ) -> DeletionCertificate:
@@ -77,6 +79,7 @@ def _build_certificate(
         started_at=started_at,
         completed_at=completed_at,
         dry_run=dry_run,
+        reason=reason,
         distinct_ids=distinct_ids,
         query=query,
         total_recordings_found=total_recordings_found,
@@ -120,6 +123,7 @@ class DeleteRecordingsWithPersonWorkflow(PostHogWorkflow):
             total_recordings_found=len(session_ids),
             results=results,
             dry_run=input.dry_run,
+            reason=input.reason,
             distinct_ids=input.distinct_ids,
         )
 
@@ -157,6 +161,7 @@ class DeleteRecordingsWithTeamWorkflow(PostHogWorkflow):
             total_recordings_found=len(session_ids),
             results=results,
             dry_run=input.dry_run,
+            reason=input.reason,
         )
 
 
@@ -193,7 +198,34 @@ class DeleteRecordingsWithQueryWorkflow(PostHogWorkflow):
             total_recordings_found=len(session_ids),
             results=results,
             dry_run=input.dry_run,
+            reason=input.reason,
             query=input.query,
+        )
+
+
+@workflow.defn(name="delete-recordings-with-session-ids")
+class DeleteRecordingsWithSessionIdsWorkflow(PostHogWorkflow):
+    @staticmethod
+    def parse_inputs(input: list[str]) -> RecordingsWithSessionIdsInput:
+        """Parse input from the management command CLI."""
+        loaded = json.loads(input[0])
+        return RecordingsWithSessionIdsInput(**loaded)
+
+    @workflow.run
+    async def run(self, input: RecordingsWithSessionIdsInput) -> DeletionCertificate:
+        started_at = datetime.now(UTC)
+
+        results = await _batch_delete(input.session_ids, input.team_id, input.batch_size, input.dry_run)
+
+        return _build_certificate(
+            workflow_type="session_ids",
+            workflow_id=workflow.info().workflow_id,
+            team_id=input.team_id,
+            started_at=started_at,
+            total_recordings_found=len(input.session_ids),
+            results=results,
+            dry_run=input.dry_run,
+            reason=input.reason,
         )
 
 

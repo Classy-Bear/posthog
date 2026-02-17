@@ -16,11 +16,13 @@ from posthog.temporal.delete_recordings.types import (
     PurgeDeletedMetadataResult,
     RecordingsWithPersonInput,
     RecordingsWithQueryInput,
+    RecordingsWithSessionIdsInput,
     RecordingsWithTeamInput,
 )
 from posthog.temporal.delete_recordings.workflows import (
     DeleteRecordingsWithPersonWorkflow,
     DeleteRecordingsWithQueryWorkflow,
+    DeleteRecordingsWithSessionIdsWorkflow,
     DeleteRecordingsWithTeamWorkflow,
     PurgeDeletedRecordingMetadataWorkflow,
 )
@@ -570,6 +572,99 @@ async def test_purge_deleted_recording_metadata_workflow():
     purge_result = PurgeDeletedMetadataResult.model_validate(result)
     assert purge_result.started_at is not None
     assert purge_result.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_delete_recordings_with_session_ids_workflow():
+    TEST_TEAM_ID: int = 66666
+    TEST_SESSION_IDS = ["session-a", "session-b", "session-c"]
+
+    deleted_sessions: list[str] = []
+
+    @activity.defn(name="bulk-delete-recordings")
+    async def bulk_delete_recordings_mocked(input: BulkDeleteInput) -> BulkDeleteResult:
+        assert input.team_id == TEST_TEAM_ID
+        deleted_sessions.extend(input.session_ids)
+        return BulkDeleteResult(deleted=input.session_ids, failed=[])
+
+    task_queue_name = str(uuid.uuid4())
+    workflow_id = str(uuid.uuid4())
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with Worker(
+            env.client,
+            task_queue=task_queue_name,
+            workflows=[DeleteRecordingsWithSessionIdsWorkflow],
+            activities=[bulk_delete_recordings_mocked],
+            workflow_runner=temporalio.worker.UnsandboxedWorkflowRunner(),
+        ):
+            result = await env.client.execute_workflow(
+                DeleteRecordingsWithSessionIdsWorkflow.run,
+                RecordingsWithSessionIdsInput(
+                    session_ids=TEST_SESSION_IDS, team_id=TEST_TEAM_ID, reason="test cleanup"
+                ),
+                id=workflow_id,
+                task_queue=task_queue_name,
+            )
+
+    assert sorted(deleted_sessions) == sorted(TEST_SESSION_IDS)
+
+    certificate = DeletionCertificate.model_validate(result)
+    assert certificate.workflow_type == "session_ids"
+    assert certificate.workflow_id == workflow_id
+    assert certificate.team_id == TEST_TEAM_ID
+    assert certificate.dry_run is False
+    assert certificate.reason == "test cleanup"
+    assert certificate.total_recordings_found == 3
+    assert certificate.total_deleted == 3
+    assert certificate.total_failed == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_recordings_with_session_ids_workflow_dry_run():
+    TEST_TEAM_ID: int = 66666
+    TEST_SESSION_IDS = ["session-a", "session-b"]
+
+    bulk_delete_called = False
+
+    @activity.defn(name="bulk-delete-recordings")
+    async def bulk_delete_recordings_mocked(input: BulkDeleteInput) -> BulkDeleteResult:
+        nonlocal bulk_delete_called
+        bulk_delete_called = True
+        raise AssertionError("Should not be called in dry run mode")
+
+    task_queue_name = str(uuid.uuid4())
+    workflow_id = str(uuid.uuid4())
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with Worker(
+            env.client,
+            task_queue=task_queue_name,
+            workflows=[DeleteRecordingsWithSessionIdsWorkflow],
+            activities=[bulk_delete_recordings_mocked],
+            workflow_runner=temporalio.worker.UnsandboxedWorkflowRunner(),
+        ):
+            result = await env.client.execute_workflow(
+                DeleteRecordingsWithSessionIdsWorkflow.run,
+                RecordingsWithSessionIdsInput(session_ids=TEST_SESSION_IDS, team_id=TEST_TEAM_ID, dry_run=True),
+                id=workflow_id,
+                task_queue=task_queue_name,
+            )
+
+    assert bulk_delete_called is False
+
+    certificate = DeletionCertificate.model_validate(result)
+    assert certificate.workflow_type == "session_ids"
+    assert certificate.dry_run is True
+    assert certificate.total_recordings_found == 2
+    assert certificate.total_deleted == 0
+
+
+def test_delete_recordings_with_session_ids_workflow_parse_inputs():
+    result = DeleteRecordingsWithSessionIdsWorkflow.parse_inputs(
+        ['{"session_ids": ["s1", "s2"], "team_id": 123, "batch_size": 50}']
+    )
+    assert result.session_ids == ["s1", "s2"]
+    assert result.team_id == 123
+    assert result.batch_size == 50
 
 
 def test_purge_deleted_recording_metadata_workflow_parse_inputs():

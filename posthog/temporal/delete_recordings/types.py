@@ -9,12 +9,14 @@ MAX_BULK_DELETE_BATCH_SIZE = 100
 class RecordingsWithPersonInput(BaseModel):
     distinct_ids: list[str]
     team_id: int
+    reason: str = ""
     dry_run: bool = False
     batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
 
 
 class RecordingsWithTeamInput(BaseModel):
     team_id: int
+    reason: str = ""
     dry_run: bool = False
     batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
 
@@ -22,9 +24,18 @@ class RecordingsWithTeamInput(BaseModel):
 class RecordingsWithQueryInput(BaseModel):
     query: str
     team_id: int
+    reason: str = ""
     dry_run: bool = False
     batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
     query_limit: int = 100
+
+
+class RecordingsWithSessionIdsInput(BaseModel):
+    session_ids: list[str]
+    team_id: int
+    reason: str = ""
+    dry_run: bool = False
+    batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
 
 
 class BulkDeleteInput(BaseModel):
@@ -50,12 +61,13 @@ class DeleteSuccess(BaseModel):
 class DeletionCertificate(BaseModel):
     """Certificate documenting the deletion of a collection of recordings."""
 
-    workflow_type: Literal["person", "team", "query"]
+    workflow_type: Literal["person", "team", "query", "session_ids"]
     workflow_id: str
     team_id: int
     started_at: datetime
     completed_at: datetime
     dry_run: bool
+    reason: str = ""
 
     # Request metadata (varies by workflow type)
     distinct_ids: list[str] | None = None

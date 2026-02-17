@@ -1,3 +1,5 @@
+import io
+import csv
 import json
 import uuid
 import asyncio
@@ -32,6 +34,7 @@ from posthog.temporal.common.client import sync_connect
 from posthog.temporal.delete_recordings.types import (
     RecordingsWithPersonInput,
     RecordingsWithQueryInput,
+    RecordingsWithSessionIdsInput,
     RecordingsWithTeamInput,
 )
 from posthog.temporal.export_recording.types import ExportRecordingInput
@@ -268,7 +271,7 @@ class TeamAdmin(admin.ModelAdmin):
             return "-"
         delete_url = reverse("admin:posthog_team_delete_recordings", args=[team.pk])
         return format_html(
-            '<a class="button" href="{}">Manage recording deletion</a>',
+            '<a class="button" href="{}">Delete recordings</a>',
             delete_url,
         )
 
@@ -643,7 +646,9 @@ class TeamAdmin(admin.ModelAdmin):
                     return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
 
                 distinct_ids = [d.strip() for d in distinct_ids_raw.split("\n") if d.strip()]
-                workflow_input = RecordingsWithPersonInput(team_id=team.id, distinct_ids=distinct_ids)
+                workflow_input = RecordingsWithPersonInput(
+                    team_id=team.id, distinct_ids=distinct_ids, reason=reason, dry_run=dry_run
+                )
 
                 asyncio.run(
                     temporal.start_workflow(
@@ -672,7 +677,7 @@ class TeamAdmin(admin.ModelAdmin):
                 )
 
             elif workflow_type == "team":
-                workflow_input = RecordingsWithTeamInput(team_id=team.id, dry_run=dry_run)
+                workflow_input = RecordingsWithTeamInput(team_id=team.id, reason=reason, dry_run=dry_run)
 
                 asyncio.run(
                     temporal.start_workflow(
@@ -755,7 +760,7 @@ class TeamAdmin(admin.ModelAdmin):
                     query_parts.append(f"properties={json.dumps(properties)}")
 
                 query = "&".join(query_parts)
-                workflow_input = RecordingsWithQueryInput(team_id=team.id, query=query, dry_run=dry_run)
+                workflow_input = RecordingsWithQueryInput(team_id=team.id, query=query, reason=reason, dry_run=dry_run)
 
                 asyncio.run(
                     temporal.start_workflow(
@@ -783,6 +788,64 @@ class TeamAdmin(admin.ModelAdmin):
                 messages.success(
                     request,
                     f"Delete recordings by filters workflow triggered{dry_run_msg}. Workflow ID: {workflow_id}",
+                )
+
+            elif workflow_type == "session_ids":
+                upload_file: UploadedFile | None = request.FILES.get("session_ids_file")
+                if not upload_file:
+                    messages.error(request, "CSV file is required for session ID-based deletion")
+                    return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
+
+                if not upload_file.name.endswith(".csv"):
+                    messages.error(request, "File must be a .csv file")
+                    return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
+
+                content = upload_file.read().decode("utf-8")
+                reader = csv.reader(io.StringIO(content))
+                session_ids: list[str] = []
+                for row in reader:
+                    if not row:
+                        continue
+                    value = row[0].strip()
+                    if value and value.lower() != "session_id":
+                        session_ids.append(value)
+
+                session_ids = list(dict.fromkeys(session_ids))
+
+                if not session_ids:
+                    messages.error(request, "No session IDs found in CSV file")
+                    return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
+
+                workflow_input = RecordingsWithSessionIdsInput(
+                    team_id=team.id, session_ids=session_ids, reason=reason, dry_run=dry_run
+                )
+
+                asyncio.run(
+                    temporal.start_workflow(
+                        "delete-recordings-with-session-ids",
+                        workflow_input,
+                        id=workflow_id,
+                        task_queue=settings.SESSION_REPLAY_TASK_QUEUE,
+                        retry_policy=common.RetryPolicy(
+                            maximum_attempts=2,
+                            initial_interval=timedelta(minutes=1),
+                        ),
+                    )
+                )
+
+                logger.info(
+                    "delete_recordings_with_session_ids_triggered",
+                    team_id=team.id,
+                    session_ids_count=len(session_ids),
+                    dry_run=dry_run,
+                    reason=reason,
+                    triggered_by=request.user.email,
+                )
+
+                dry_run_msg = " (DRY RUN)" if dry_run else ""
+                messages.success(
+                    request,
+                    f"Delete recordings workflow triggered for {len(session_ids)} session ID(s){dry_run_msg}. Workflow ID: {workflow_id}",
                 )
 
             else:

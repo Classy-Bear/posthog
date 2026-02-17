@@ -256,6 +256,11 @@
             <dt>Dry Run</dt>
             <dd>{{ certificate.dry_run|yesno:"Yes,No" }}</dd>
 
+            {% if certificate.reason %}
+            <dt>Reason</dt>
+            <dd>{{ certificate.reason }}</dd>
+            {% endif %}
+
             {% if certificate.distinct_ids %}
             <dt>Distinct IDs</dt>
             <dd>{{ certificate.distinct_ids|join:", " }}</dd>
