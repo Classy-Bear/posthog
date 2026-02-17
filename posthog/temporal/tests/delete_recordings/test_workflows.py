@@ -437,7 +437,7 @@ async def test_delete_recordings_with_batching():
     certificate = DeletionCertificate.model_validate(result)
     assert certificate.total_recordings_found == 250
     assert certificate.total_deleted == 250
-    assert len(certificate.deleted_recordings) == 250
+    assert len(certificate.deleted_recordings) == 100  # capped at MAX_CERTIFICATE_ENTRIES
 
 
 @pytest.mark.asyncio

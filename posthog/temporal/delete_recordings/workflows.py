@@ -45,7 +45,7 @@ async def _batch_delete(session_ids: list[str], team_id: int, batch_size: int, d
     return results
 
 
-MAX_CERTIFICATE_ENTRIES = 10_000
+MAX_CERTIFICATE_ENTRIES = 100
 
 
 def _build_certificate(

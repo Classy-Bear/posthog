@@ -731,21 +731,31 @@ class TeamAdmin(admin.ModelAdmin):
 
                 properties = []
                 if duration_min:
+                    try:
+                        duration_min_val = int(duration_min)
+                    except ValueError:
+                        messages.error(request, "Min duration must be a number (in seconds)")
+                        return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
                     properties.append(
                         {
                             "type": "recording",
                             "key": "duration",
                             "operator": "gt",
-                            "value": int(duration_min),
+                            "value": duration_min_val,
                         }
                     )
                 if duration_max:
+                    try:
+                        duration_max_val = int(duration_max)
+                    except ValueError:
+                        messages.error(request, "Max duration must be a number (in seconds)")
+                        return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
                     properties.append(
                         {
                             "type": "recording",
                             "key": "duration",
                             "operator": "lt",
-                            "value": int(duration_max),
+                            "value": duration_max_val,
                         }
                     )
                 if platform:

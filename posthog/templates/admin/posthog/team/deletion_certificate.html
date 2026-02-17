@@ -319,7 +319,7 @@
         </dl>
     </div>
 
-    {% if certificate.deleted_recordings %}
+    {% if certificate.deleted_recordings and certificate.deleted_recordings|length <= 100 %}
     <div class="section">
         <h2>Deleted Recordings ({{ certificate.deleted_recordings|length }})</h2>
         {% if certificate.deleted_recordings|length > 20 %}
