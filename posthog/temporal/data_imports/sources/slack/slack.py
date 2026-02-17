@@ -90,7 +90,7 @@ def _fetch_all_channels(access_token: str) -> list[dict[str, Any]]:
         if cursor:
             params["cursor"] = cursor
 
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         data = response.json()
 
         if not data.get("ok"):
@@ -122,7 +122,7 @@ def _fetch_messages_for_channel(
         if cursor:
             params["cursor"] = cursor
 
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         data = response.json()
 
         if not data.get("ok"):
@@ -161,7 +161,7 @@ def _fetch_thread_replies(
         if cursor:
             params["cursor"] = cursor
 
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         data = response.json()
 
         if not data.get("ok"):
