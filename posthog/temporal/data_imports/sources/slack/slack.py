@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import Any, Optional
 
 import requests
@@ -207,6 +207,8 @@ def slack_source(
     incremental_field: str | None = None,
 ) -> SourceResponse:
     endpoint_config = ENDPOINTS[endpoint]
+
+    items: Callable[[], Iterable[Any]]
 
     if endpoint == "messages":
         items = lambda: _messages_generator(access_token)
