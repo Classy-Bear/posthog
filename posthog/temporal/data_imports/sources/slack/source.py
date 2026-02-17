@@ -33,6 +33,7 @@ class SlackSource(SimpleSource[SlackSourceConfig], OAuthMixin):
             name=SchemaExternalDataSourceType.SLACK,
             caption="Select an existing Slack workspace to link to PostHog or create a new connection",
             iconPath="/static/services/slack.png",
+            betaSource=True,
             fields=cast(
                 list[FieldType],
                 [
