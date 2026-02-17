@@ -28,6 +28,7 @@ class Producer:
     def __init__(self):
         self.logger = LOGGER.bind()
         self._task: asyncio.Task | None = None
+        self.total_size = 0
 
     @property
     def task(self) -> asyncio.Task:
@@ -114,6 +115,7 @@ class Producer:
             reader = asyncpa.AsyncRecordBatchReader(stream.iter_chunks(chunk_size=128 * 1024))
 
             async for batch in reader:
+                self.total_size += batch.nbytes
                 for record_batch_slice in slice_record_batch(batch, max_record_batch_size_bytes, min_records_per_batch):
                     await queue.put(record_batch_slice)
 
