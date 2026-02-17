@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import yaml
 import numpy as np
@@ -171,6 +171,9 @@ async def test_emit_signals_activity_calls_emit_signal(ateam, test_segments_and_
         segments=segments,
     )
 
+    mock_activity_info = MagicMock()
+    mock_activity_info.workflow_id = "test-workflow-id"
+
     with (
         patch(
             "posthog.temporal.ai.video_segment_clustering.activities.a4_emit_signals_from_clusters.emit_signal",
@@ -186,6 +189,10 @@ async def test_emit_signals_activity_calls_emit_signal(ateam, test_segments_and_
         patch(
             "posthog.temporal.ai.video_segment_clustering.priority.count_distinct_persons",
             return_value=3,
+        ),
+        patch(
+            "posthog.temporal.ai.video_segment_clustering.activities.a4_emit_signals_from_clusters.activity.info",
+            return_value=mock_activity_info,
         ),
     ):
         mock_genai_module.AsyncClient.return_value = mock_genai_client
