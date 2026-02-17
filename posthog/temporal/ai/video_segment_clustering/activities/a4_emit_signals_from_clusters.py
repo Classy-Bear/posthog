@@ -154,24 +154,30 @@ async def emit_signals_from_clusters_activity(inputs: EmitSignalsActivityInputs)
                 }
             )
 
-        await emit_signal(
-            team=team,
-            source_product="session_recordings",
-            source_type="segment_cluster",
-            source_id=f"{team.id}:{activity.info().workflow_id}:{cluster.cluster_id}",
-            description=cluster_label.description,
-            weight=weight,
-            extra={
-                "label_title": cluster_label.title,
-                "actionable": cluster_label.actionable,
-                "segments": segment_extras,
-                "metrics": {
-                    "relevant_user_count": relevant_user_count,
-                    "occurrence_count": metrics["occurrence_count"],
+        try:
+            await emit_signal(
+                team=team,
+                source_product="session_recordings",
+                source_type="segment_cluster",
+                source_id=f"{team.id}:{activity.info().workflow_id}:{cluster.cluster_id}",
+                description=cluster_label.description,
+                weight=weight,
+                extra={
+                    "label_title": cluster_label.title,
+                    "actionable": cluster_label.actionable,
+                    "segments": segment_extras,
+                    "metrics": {
+                        "relevant_user_count": relevant_user_count,
+                        "occurrence_count": metrics["occurrence_count"],
+                    },
                 },
-            },
-        )
-        signals_emitted += 1
+            )
+            signals_emitted += 1
+            logger.info("Emitted signal for cluster", cluster_id=cluster.cluster_id)
+        except Exception as e:
+            logger.error("Failed to emit signal for cluster", cluster_id=cluster.cluster_id, error=str(e))
+            clusters_skipped += 1
+            continue
 
         logger.info(
             "Emitted signal for cluster",
