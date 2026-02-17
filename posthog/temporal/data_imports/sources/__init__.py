@@ -3,6 +3,7 @@ from .attio.source import AttioSource
 from .bigquery.source import BigQuerySource
 from .bing_ads.source import BingAdsSource
 from .braze.source import BrazeSource
+from .buildbetter.source import BuildBetterSource
 from .chargebee.source import ChargebeeSource
 from .clerk.source import ClerkSource
 from .common.registry import SourceRegistry
@@ -47,6 +48,7 @@ __all__ = [
     "BigQuerySource",
     "BingAdsSource",
     "BrazeSource",
+    "BuildBetterSource",
     "ChargebeeSource",
     "ClerkSource",
     "DoItSource",

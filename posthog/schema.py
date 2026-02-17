@@ -1634,6 +1634,7 @@ class ExternalDataSourceType(StrEnum):
     ATTIO = "Attio"
     SNAPCHAT_ADS = "SnapchatAds"
     LINEAR = "Linear"
+    BUILD_BETTER = "BuildBetter"
 
 
 class ExternalQueryErrorCode(StrEnum):

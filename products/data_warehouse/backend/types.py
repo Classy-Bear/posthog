@@ -71,6 +71,7 @@ class ExternalDataSourceType(models.TextChoices):
     ATTIO = "Attio", "Attio"
     SNAPCHATADS = "SnapchatAds", "SnapchatAds"
     LINEAR = "Linear", "Linear"
+    BUILDBETTER = "BuildBetter", "BuildBetter"
 
 
 class DataWarehouseManagedViewSetKind(models.TextChoices):

@@ -4852,6 +4852,7 @@ export const externalDataSources = [
     'Attio',
     'SnapchatAds',
     'Linear',
+    'BuildBetter',
 ] as const
 
 export type ExternalDataSourceType = (typeof externalDataSources)[number]

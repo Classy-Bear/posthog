@@ -97,6 +97,11 @@ class BrazeSourceConfig(config.Config):
 
 
 @config.config
+class BuildBetterSourceConfig(config.Config):
+    api_key: str
+
+
+@config.config
 class ChargebeeSourceConfig(config.Config):
     api_key: str
     site_name: str
@@ -324,6 +329,7 @@ def get_config_for_source(source: ExternalDataSourceType):
         ExternalDataSourceType.BIGQUERY: BigQuerySourceConfig,
         ExternalDataSourceType.BINGADS: BingAdsSourceConfig,
         ExternalDataSourceType.BRAZE: BrazeSourceConfig,
+        ExternalDataSourceType.BUILDBETTER: BuildBetterSourceConfig,
         ExternalDataSourceType.CHARGEBEE: ChargebeeSourceConfig,
         ExternalDataSourceType.CLERK: ClerkSourceConfig,
         ExternalDataSourceType.CUSTOMERIO: CustomerIOSourceConfig,
