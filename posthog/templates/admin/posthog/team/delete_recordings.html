@@ -176,9 +176,27 @@
     .cert-link a {
         margin-right: 6px;
     }
-    .refresh-link {
-        margin-top: 12px;
-        font-size: 13px;
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .section-header h3 {
+        margin: 0;
+    }
+    .refresh-btn {
+        font-size: 12px;
+        color: #6b7280;
+        text-decoration: none;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 2px 8px;
+        cursor: pointer;
+    }
+    .refresh-btn:hover {
+        color: #111827;
+        border-color: #d1d5db;
+        background: #f9fafb;
     }
     .empty-state {
         color: #9ca3af;
@@ -188,7 +206,10 @@
 
 <!-- Workflow Status -->
 <div class="workflow-section">
-    <h3>Recent deletion workflows</h3>
+    <div class="section-header">
+        <h3>Recent deletion workflows</h3>
+        <a class="refresh-btn" id="refresh-btn" href="">Refresh</a>
+    </div>
     <p>Previously triggered deletion workflows for this team.</p>
     {% if workflows %}
     <table class="workflow-table">
@@ -238,7 +259,6 @@
             {% endfor %}
         </tbody>
     </table>
-    <p class="refresh-link"><a href="" onclick="location.reload(); return false;">Refresh</a></p>
     {% else %}
     <p class="empty-state">No deletion workflows have been run for this team yet.</p>
     {% endif %}
@@ -398,4 +418,7 @@
     </form>
 </div>
 
+<script nonce="{{ request.csp_nonce }}">
+document.getElementById("refresh-btn").addEventListener("click", function(e) { e.preventDefault(); location.reload(); });
+</script>
 {% endblock %}

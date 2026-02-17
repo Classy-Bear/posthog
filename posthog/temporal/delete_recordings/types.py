@@ -36,11 +36,13 @@ class RecordingsWithSessionIdsInput(BaseModel):
     reason: str = ""
     dry_run: bool = False
     batch_size: Annotated[int, Field(ge=1, le=MAX_BULK_DELETE_BATCH_SIZE)] = MAX_BULK_DELETE_BATCH_SIZE
+    source_filename: str | None = None
 
 
 class BulkDeleteInput(BaseModel):
     team_id: int
     session_ids: list[str]
+    dry_run: bool = False
 
 
 class DeleteFailure(BaseModel):
@@ -72,6 +74,7 @@ class DeletionCertificate(BaseModel):
     # Request metadata (varies by workflow type)
     distinct_ids: list[str] | None = None
     query: str | None = None
+    source_filename: str | None = None
 
     # Summary statistics
     total_recordings_found: int

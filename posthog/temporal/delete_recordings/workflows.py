@@ -30,19 +30,18 @@ from posthog.temporal.delete_recordings.types import (
 
 async def _batch_delete(session_ids: list[str], team_id: int, batch_size: int, dry_run: bool) -> list[BulkDeleteResult]:
     results: list[BulkDeleteResult] = []
-    if not dry_run:
-        for batch in batched(session_ids, batch_size):
-            result = await workflow.execute_activity(
-                bulk_delete_recordings,
-                BulkDeleteInput(team_id=team_id, session_ids=list(batch)),
-                start_to_close_timeout=timedelta(minutes=10),
-                schedule_to_close_timeout=timedelta(hours=3),
-                retry_policy=common.RetryPolicy(
-                    maximum_attempts=3,
-                    initial_interval=timedelta(minutes=1),
-                ),
-            )
-            results.append(result)
+    for batch in batched(session_ids, batch_size):
+        result = await workflow.execute_activity(
+            bulk_delete_recordings,
+            BulkDeleteInput(team_id=team_id, session_ids=list(batch), dry_run=dry_run),
+            start_to_close_timeout=timedelta(minutes=10),
+            schedule_to_close_timeout=timedelta(hours=3),
+            retry_policy=common.RetryPolicy(
+                maximum_attempts=3,
+                initial_interval=timedelta(minutes=1),
+            ),
+        )
+        results.append(result)
     return results
 
 
@@ -60,6 +59,7 @@ def _build_certificate(
     reason: str = "",
     distinct_ids: list[str] | None = None,
     query: str | None = None,
+    source_filename: str | None = None,
 ) -> DeletionCertificate:
     """Build a deletion certificate from the batch results."""
     completed_at = datetime.now(UTC)
@@ -82,6 +82,7 @@ def _build_certificate(
         reason=reason,
         distinct_ids=distinct_ids,
         query=query,
+        source_filename=source_filename,
         total_recordings_found=total_recordings_found,
         total_deleted=len(deleted_recordings),
         total_failed=len(all_failed),
@@ -226,6 +227,7 @@ class DeleteRecordingsWithSessionIdsWorkflow(PostHogWorkflow):
             results=results,
             dry_run=input.dry_run,
             reason=input.reason,
+            source_filename=input.source_filename,
         )
 
 

@@ -96,8 +96,6 @@ async def test_delete_recordings_with_person_workflow_dry_run():
     TEST_TEAM_ID: int = 45678
     TEST_SESSION_IDS = ["session-1", "session-2"]
 
-    bulk_delete_called = False
-
     @activity.defn(name="load-recordings-with-person")
     async def load_recordings_with_person_mocked(input: RecordingsWithPersonInput) -> list[str]:
         assert input.distinct_ids == TEST_DISTINCT_IDS
@@ -106,9 +104,8 @@ async def test_delete_recordings_with_person_workflow_dry_run():
 
     @activity.defn(name="bulk-delete-recordings")
     async def bulk_delete_recordings_mocked(input: BulkDeleteInput) -> BulkDeleteResult:
-        nonlocal bulk_delete_called
-        bulk_delete_called = True
-        raise AssertionError("Should not be called in dry run mode")
+        assert input.dry_run is True
+        return BulkDeleteResult(deleted=[], failed=[])
 
     task_queue_name = str(uuid.uuid4())
     workflow_id = str(uuid.uuid4())
@@ -129,8 +126,6 @@ async def test_delete_recordings_with_person_workflow_dry_run():
                 id=workflow_id,
                 task_queue=task_queue_name,
             )
-
-    assert bulk_delete_called is False
 
     certificate = DeletionCertificate.model_validate(result)
     assert certificate.workflow_type == "person"
@@ -244,8 +239,6 @@ async def test_delete_recordings_with_team_workflow_dry_run():
     TEST_TEAM_ID: int = 44444
     TEST_SESSION_IDS = ["dry-run-session-1", "dry-run-session-2"]
 
-    bulk_delete_called = False
-
     @activity.defn(name="load-recordings-with-team-id")
     async def load_recordings_with_team_id_mocked(input: RecordingsWithTeamInput) -> list[str]:
         assert input.team_id == TEST_TEAM_ID
@@ -254,9 +247,8 @@ async def test_delete_recordings_with_team_workflow_dry_run():
 
     @activity.defn(name="bulk-delete-recordings")
     async def bulk_delete_recordings_mocked(input: BulkDeleteInput) -> BulkDeleteResult:
-        nonlocal bulk_delete_called
-        bulk_delete_called = True
-        raise AssertionError("Should not be called in dry run mode")
+        assert input.dry_run is True
+        return BulkDeleteResult(deleted=[], failed=[])
 
     task_queue_name = str(uuid.uuid4())
     workflow_id = str(uuid.uuid4())
@@ -277,8 +269,6 @@ async def test_delete_recordings_with_team_workflow_dry_run():
                 id=workflow_id,
                 task_queue=task_queue_name,
             )
-
-    assert bulk_delete_called is False
 
     certificate = DeletionCertificate.model_validate(result)
     assert certificate.workflow_type == "team"
@@ -352,8 +342,6 @@ async def test_delete_recordings_with_query_workflow_dry_run():
     TEST_TEAM_ID: int = 11111
     TEST_SESSION_IDS = ["7d4e5f6g-8h9i-0j1k-2l3m-4n5o6p7q8r9s", "8e5f6g7h-9i0j-1k2l-3m4n-5o6p7q8r9s0t"]
 
-    bulk_delete_called = False
-
     @activity.defn(name="load-recordings-with-query")
     async def load_recordings_with_query_mocked(input: RecordingsWithQueryInput) -> list[str]:
         assert input.query == TEST_QUERY
@@ -363,9 +351,8 @@ async def test_delete_recordings_with_query_workflow_dry_run():
 
     @activity.defn(name="bulk-delete-recordings")
     async def bulk_delete_recordings_mocked(input: BulkDeleteInput) -> BulkDeleteResult:
-        nonlocal bulk_delete_called
-        bulk_delete_called = True
-        raise AssertionError("Should not be called in dry run mode")
+        assert input.dry_run is True
+        return BulkDeleteResult(deleted=[], failed=[])
 
     task_queue_name = str(uuid.uuid4())
     workflow_id = str(uuid.uuid4())
@@ -386,8 +373,6 @@ async def test_delete_recordings_with_query_workflow_dry_run():
                 id=workflow_id,
                 task_queue=task_queue_name,
             )
-
-    assert bulk_delete_called is False
 
     certificate = DeletionCertificate.model_validate(result)
     assert certificate.workflow_type == "query"
@@ -624,13 +609,10 @@ async def test_delete_recordings_with_session_ids_workflow_dry_run():
     TEST_TEAM_ID: int = 66666
     TEST_SESSION_IDS = ["session-a", "session-b"]
 
-    bulk_delete_called = False
-
     @activity.defn(name="bulk-delete-recordings")
     async def bulk_delete_recordings_mocked(input: BulkDeleteInput) -> BulkDeleteResult:
-        nonlocal bulk_delete_called
-        bulk_delete_called = True
-        raise AssertionError("Should not be called in dry run mode")
+        assert input.dry_run is True
+        return BulkDeleteResult(deleted=[], failed=[])
 
     task_queue_name = str(uuid.uuid4())
     workflow_id = str(uuid.uuid4())
@@ -648,8 +630,6 @@ async def test_delete_recordings_with_session_ids_workflow_dry_run():
                 id=workflow_id,
                 task_queue=task_queue_name,
             )
-
-    assert bulk_delete_called is False
 
     certificate = DeletionCertificate.model_validate(result)
     assert certificate.workflow_type == "session_ids"

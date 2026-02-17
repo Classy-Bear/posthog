@@ -5,7 +5,7 @@ import uuid
 import asyncio
 import tempfile
 import dataclasses
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -590,7 +590,8 @@ class TeamAdmin(admin.ModelAdmin):
         """Fetch recent delete-recordings workflows for this team from Temporal."""
         try:
             temporal = sync_connect()
-            query = f'WorkflowId STARTS_WITH "delete-recordings-{team_id}-" ORDER BY StartTime DESC'
+            prefix = f"delete-recordings-{team_id}-"
+            query = f'WorkflowId >= "{prefix}" AND WorkflowId < "{prefix}~" ORDER BY StartTime DESC'
 
             async def fetch_workflows():
                 workflows = []
@@ -817,7 +818,11 @@ class TeamAdmin(admin.ModelAdmin):
                     return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
 
                 workflow_input = RecordingsWithSessionIdsInput(
-                    team_id=team.id, session_ids=session_ids, reason=reason, dry_run=dry_run
+                    team_id=team.id,
+                    session_ids=session_ids,
+                    reason=reason,
+                    dry_run=dry_run,
+                    source_filename=upload_file.name,
                 )
 
                 asyncio.run(
@@ -906,18 +911,32 @@ class TeamAdmin(admin.ModelAdmin):
 
     def deletion_certificate_view(self, request, object_id, workflow_id):
         """Display a deletion certificate as a printable HTML page."""
-        team = Team.objects.get(pk=object_id)
+        team = Team.objects.select_related("organization").get(pk=object_id)
 
         certificate, error = self._get_deletion_certificate(team.id, workflow_id)
         if error:
             messages.error(request, f"Failed to fetch certificate: {error}")
             return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
 
+        # workflow_id is "delete-recordings-{team_id}-{uuid}" — extract just the UUID
+        reference = workflow_id.rsplit("-", 5)[-5:]
+        reference_id = "-".join(reference) if len(reference) == 5 else workflow_id
+
+        # Temporal returns timestamps as ISO strings — parse them for Django's date filter
+        if isinstance(certificate, dict):
+            for key in ("started_at", "completed_at"):
+                if isinstance(certificate.get(key), str):
+                    certificate[key] = datetime.fromisoformat(certificate[key])
+            for recording in certificate.get("deleted_recordings", []):
+                if isinstance(recording.get("deleted_at"), str):
+                    recording["deleted_at"] = datetime.fromisoformat(recording["deleted_at"])
+
         context = {
             **self.admin_site.each_context(request),
             "team": team,
             "certificate": certificate,
-            "title": f"Deletion Certificate - {workflow_id}",
+            "reference_id": reference_id,
+            "title": f"Deletion Certificate - {reference_id}",
         }
         return render(request, "admin/posthog/team/deletion_certificate.html", context)
 
@@ -931,7 +950,7 @@ class TeamAdmin(admin.ModelAdmin):
             return redirect(reverse("admin:posthog_team_delete_recordings", args=[object_id]))
 
         response = HttpResponse(
-            certificate.model_dump_json(indent=2),
+            json.dumps(certificate, indent=2, default=str),
             content_type="application/json",
         )
         filename = f"deletion-certificate-{workflow_id}.json"

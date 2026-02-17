@@ -198,8 +198,13 @@ async def purge_deleted_metadata(input: PurgeDeletedMetadataInput) -> PurgeDelet
 @activity.defn(name="bulk-delete-recordings")
 async def bulk_delete_recordings(input: BulkDeleteInput) -> BulkDeleteResult:
     """Bulk delete recordings via the recording API bulk-delete endpoint."""
-    bind_contextvars(team_id=input.team_id, session_count=len(input.session_ids))
+    bind_contextvars(team_id=input.team_id, session_count=len(input.session_ids), dry_run=input.dry_run)
     logger = LOGGER.bind()
+
+    if input.dry_run:
+        logger.info("Dry run: skipping deletion")
+        return BulkDeleteResult(deleted=[], failed=[])
+
     logger.info("Deleting recordings via recording API")
 
     recording_api_url = settings.RECORDING_API_URL
