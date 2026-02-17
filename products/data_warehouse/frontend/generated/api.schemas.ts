@@ -137,6 +137,7 @@ export interface PaginatedExternalDataSchemaListApi {
  * `Attio` - Attio
  * `SnapchatAds` - SnapchatAds
  * `Linear` - Linear
+ * `BuildBetter` - BuildBetter
  */
 export type SourceTypeEnumApi = (typeof SourceTypeEnumApi)[keyof typeof SourceTypeEnumApi]
 
@@ -178,6 +179,7 @@ export const SourceTypeEnumApi = {
     Attio: 'Attio',
     SnapchatAds: 'SnapchatAds',
     Linear: 'Linear',
+    BuildBetter: 'BuildBetter',
 } as const
 
 export interface ExternalDataSourceRevenueAnalyticsConfigApi {
